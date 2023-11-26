@@ -30,6 +30,20 @@ local function get_api_key()
     return api_key
 end
 
+local function get_api_base()
+    -- Priority: 1. g:backseat_openai_api_key 2. $OPENAI_API_KEY 3. Prompt user
+    local api_base = vim.g.backseat_openai_api_key
+    if api_base == nil then
+        local base = os.getenv("OPENAI_API_BASE")
+        if base ~= nil then
+            return base
+        end
+
+        return 'https://api.openai.com/v1'
+    end
+    return api_base
+end
+
 local function get_model_id()
     local model = vim.g.backseat_openai_model_id
     if model == nil then
@@ -96,6 +110,8 @@ local function gpt_request(dataJSON, callback, callbackTable)
         return nil
     end
 
+  local api_base = get_api_base()
+
     -- Check if curl is installed
     if vim.fn.executable("curl") == 0 then
         vim.fn.confirm("curl installation not found. Please install curl to use Backseat", "&OK", 1, "Warning")
@@ -124,14 +140,14 @@ local function gpt_request(dataJSON, callback, callbackTable)
     if isWindows ~= true then
         -- Linux
         curlRequest = string.format(
-            "curl -s https://api.openai.com/v1/chat/completions -H \"Content-Type: application/json\" -H \"Authorization: Bearer " ..
+            "curl -s " .. api_base .. "/chat/completions -H \"Content-Type: application/json\" -H \"Authorization: Bearer " ..
             api_key ..
             "\" --data-binary \"@" .. tempFilePathEscaped .. "\"; rm " .. tempFilePathEscaped .. " > /dev/null 2>&1"
         )
     else
         -- Windows
         curlRequest = string.format(
-            "curl -s https://api.openai.com/v1/chat/completions -H \"Content-Type: application/json\" -H \"Authorization: Bearer " ..
+            "curl -s " .. api_base .. "/chat/completions -H \"Content-Type: application/json\" -H \"Authorization: Bearer " ..
             api_key ..
             "\" --data-binary \"@" .. tempFilePathEscaped .. "\" & del " .. tempFilePathEscaped .. " > nul 2>&1"
         )
